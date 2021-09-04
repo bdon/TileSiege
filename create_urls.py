@@ -88,6 +88,6 @@ with open('urls.txt','w') as f:
     f.write("EXT=pbf\n")
     for sample in range(OUTPUT_ROWS):
         rand = random.randrange(aggregate)
-        i = bisect.bisect(ranges,rand)
+        i = bisect.bisect(ranges,rand)-1
         f.write(f"$(PROT)://$(HOST):$(PORT)/$(PATH){tiles[i]}.$(EXT)\n")
 print(f"wrote urls.txt with {OUTPUT_ROWS} requests.")
