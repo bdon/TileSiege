@@ -14,7 +14,7 @@ Install [siege](https://github.com/JoeDog/siege) via `apt install siege` or anot
 Create a urls.txt from anonymized tile requests to [openstreetmap.org](https://openstreetmap.org) for the week of 2021-08-08:
 
 ```
-python create_urls.py
+python create_urls.py [--bbox=MIN_LON,MIN_LAT,MAX_LON,MAX_LAT] [--maxzoom=19]
 ``` 
 
 The output urls.txt will contain 10,000 rows, with server parameters you can edit:
