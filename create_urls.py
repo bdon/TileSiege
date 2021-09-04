@@ -38,16 +38,18 @@ if not os.path.isfile(FILENAME):
 # output should be pseudorandom + deterministic.
 random.seed(3857)
 
-maxzoom = 19
+maxzoom = args.maxzoom
 distribution = [2,2,6,12,16,27,38,41,49,56,72,71,99,135,135,136,102,66,37,6] # the total distribution...
 
-counts = {}
+total_weight = 0
+totals = {}
+ranges = {}
+tiles = {}
 for zoom in range(maxzoom+1):
-    counts[zoom] = 0
-
-aggregate = 0
-ranges = []
-tiles = []
+    total_weight = total_weight + distribution[zoom]
+    totals[zoom] = 0
+    ranges[zoom] = []
+    tiles[zoom] = []
 
 with lzma.open(FILENAME,'rt') as f:
     reader = csv.reader(f,delimiter=' ')
@@ -57,6 +59,10 @@ with lzma.open(FILENAME,'rt') as f:
         z = int(split[0])
         x = int(split[1])
         y = int(split[2])
+        count = int(row[1])
+
+        if z > maxzoom:
+            continue
 
         if bounds:
             f = 1 << z
@@ -65,20 +71,12 @@ with lzma.open(FILENAME,'rt') as f:
                y >= math.floor(bounds[1] * f) and
                y <= math.floor(bounds[3] * f)):
                 pass
+            else:
+                continue
 
-        count = int(row[1])
-        counts[z] = counts[z] + count
-
-        tiles.append(row[0])
-        ranges.append(aggregate)
-        aggregate = aggregate + count
-
-max_count = max(counts.values())
-for zoom, count in counts.items():
-    p1 = ' ' if zoom < 10 else ''
-    p2 = ' ' * (len(str(max_count)) - len(str(count)))
-    bar = '█' * math.ceil(count / max_count * 20)
-    print(f"{p1}{zoom} | {p2}{count} {bar}")
+        ranges[z].append(totals[z])
+        tiles[z].append(row[0])
+        totals[z] = totals[z] + count
 
 with open('urls.txt','w') as f:
     f.write("PROT=http\n")
@@ -86,8 +84,14 @@ with open('urls.txt','w') as f:
     f.write("PORT=8080\n")
     f.write("PATH=\n")
     f.write("EXT=pbf\n")
-    for sample in range(OUTPUT_ROWS):
-        rand = random.randrange(aggregate)
-        i = bisect.bisect(ranges,rand)-1
-        f.write(f"$(PROT)://$(HOST):$(PORT)/$(PATH){tiles[i]}.$(EXT)\n")
+    for zoom in range(0,maxzoom+1):
+        rows_for_zoom = int(OUTPUT_ROWS * distribution[zoom]/total_weight)
+        for sample in range(rows_for_zoom):
+            rand = random.randrange(totals[zoom])
+            i = bisect.bisect(ranges[zoom],rand)-1
+            f.write(f"$(PROT)://$(HOST):$(PORT)/$(PATH){tiles[zoom][i]}.$(EXT)\n")
+        p1 = ' ' if zoom < 10 else ''
+        p2 = ' ' * (len(str(10000)) - len(str(rows_for_zoom)))
+        bar = '█' * math.ceil(rows_for_zoom / OUTPUT_ROWS * 60)
+        print(f"{p1}{zoom} | {p2}{rows_for_zoom} {bar}")
 print(f"wrote urls.txt with {OUTPUT_ROWS} requests.")
