@@ -19,6 +19,15 @@ def _xy(lon,lat):
     y = 0.5 - 0.25 * math.log((1.0 + sinlat) / (1.0 - sinlat)) / math.pi
     return x,y
 
+def percentage_split(size, percentages):
+    prv = 0
+    cumsum = 0
+    for idx, p in enumerate(percentages):
+        cumsum += p
+        nxt = int(cumsum * size)
+        yield idx, prv, nxt
+        prv = nxt
+
 bounds = None
 
 if args.bbox:
@@ -84,8 +93,12 @@ with open('urls.txt','w') as f:
     f.write("PORT=8080\n")
     f.write("PATH=\n")
     f.write("EXT=pbf\n")
-    for zoom in range(0,maxzoom+1):
-        rows_for_zoom = int(OUTPUT_ROWS * distribution[zoom]/total_weight)
+    rows = 0
+    for zoom, start, end in percentage_split(
+        OUTPUT_ROWS, [distribution[zoom] / total_weight for zoom in range(maxzoom + 1)]
+    ):
+        rows_for_zoom = end - start
+        rows += rows_for_zoom
         for sample in range(rows_for_zoom):
             rand = random.randrange(totals[zoom])
             i = bisect.bisect(ranges[zoom],rand)-1
@@ -94,4 +107,4 @@ with open('urls.txt','w') as f:
         p2 = ' ' * (len(str(10000)) - len(str(rows_for_zoom)))
         bar = '█' * math.ceil(rows_for_zoom / OUTPUT_ROWS * 60)
         print(f"{p1}{zoom} | {p2}{rows_for_zoom} {bar}")
-print(f"wrote urls.txt with {OUTPUT_ROWS} requests.")
+print(f"wrote urls.txt with {rows} requests.")
