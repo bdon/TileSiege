@@ -17,7 +17,7 @@ Create a urls.txt from anonymized tile requests to [openstreetmap.org](https://o
 python create_urls.py [--bbox=MIN_LON,MIN_LAT,MAX_LON,MAX_LAT] [--maxzoom=19]
 ``` 
 
-The output urls.txt will contain 10,000 rows, with server parameters you can edit:
+The output urls.txt will contain about 10,000 rows, with server parameters you can edit:
 
 ```
 PROT=http
