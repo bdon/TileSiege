@@ -9,6 +9,7 @@ import math
 import argparse
 
 parser = argparse.ArgumentParser(description='Create a urls.txt for siege.')
+parser.add_argument('--minzoom', type=int, default=0, help='Minimum zoom level, inclusive.')
 parser.add_argument('--maxzoom', type=int, default=19, help='Maximum zoom level, inclusive.')
 parser.add_argument('--bbox', type=str,help='Bounding box: min_lon,min_lat,max_lon,max_lat')
 args = parser.parse_args()
@@ -22,10 +23,10 @@ def _xy(lon,lat):
 def percentage_split(size, percentages):
     prv = 0
     cumsum = 0
-    for idx, p in enumerate(percentages):
+    for zoom, p in percentages.items():
         cumsum += p
         nxt = int(cumsum * size)
-        yield idx, prv, nxt
+        yield zoom, prv, nxt
         prv = nxt
 
 bounds = None
@@ -47,6 +48,7 @@ if not os.path.isfile(FILENAME):
 # output should be pseudorandom + deterministic.
 random.seed(3857)
 
+minzoom = args.minzoom
 maxzoom = args.maxzoom
 distribution = [2,2,6,12,16,27,38,41,49,56,72,71,99,135,135,136,102,66,37,6] # the total distribution...
 
@@ -54,7 +56,7 @@ total_weight = 0
 totals = {}
 ranges = {}
 tiles = {}
-for zoom in range(maxzoom+1):
+for zoom in range(minzoom, maxzoom+1):
     total_weight = total_weight + distribution[zoom]
     totals[zoom] = 0
     ranges[zoom] = []
@@ -70,7 +72,7 @@ with lzma.open(FILENAME,'rt') as f:
         y = int(split[2])
         count = int(row[1])
 
-        if z > maxzoom:
+        if z < minzoom or z > maxzoom:
             continue
 
         if bounds:
@@ -95,7 +97,7 @@ with open('urls.txt','w') as f:
     f.write("EXT=pbf\n")
     rows = 0
     for zoom, start, end in percentage_split(
-        OUTPUT_ROWS, [distribution[zoom] / total_weight for zoom in range(maxzoom + 1)]
+        OUTPUT_ROWS, {zoom: distribution[zoom] / total_weight for zoom in range(minzoom, maxzoom + 1)}
     ):
         rows_for_zoom = end - start
         rows += rows_for_zoom
